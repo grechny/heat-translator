@@ -30,8 +30,8 @@ class ToscaNfvVnfVirtualLinkDesc(HotResource):
 
     def __init__(self, nodetemplate, csar_dir=None):
         super(ToscaNfvVnfVirtualLinkDesc, self).__init__(nodetemplate,
-                                           type='OS::Neutron::Net',
-                                           csar_dir=csar_dir)
+                                                         type='OS::Neutron::Net',
+                                                         csar_dir=csar_dir)
         pass
 
     def handle_properties(self):
@@ -86,6 +86,8 @@ class ToscaNfvVnfVirtualLinkDesc(HotResource):
                     ip_pool_end = value
                 elif key == 'dhcp_enabled':
                     subnet_props['enable_dhcp'] = value
+                else:
+                    subnet_props[key] = value
 
         if 'network_id' in tosca_props:
             subnet_props['network'] = tosca_props['network_id']
