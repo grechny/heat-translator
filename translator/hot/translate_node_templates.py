@@ -263,27 +263,27 @@ class TranslateNodeTemplates(object):
                         value = {"get_param": "key_name"}
                         prop = Property(i.name, value, schema)
                         node._properties.append(prop)
-
-        for policy in self.policies:
-            policy_type = policy.type_definition
-            if policy.is_derived_from('tosca.policies.Scaling') and \
-               policy_type.type != 'tosca.policies.Scaling.Cluster':
-                TOSCA_TO_HOT_TYPE[policy_type.type] = \
-                    TOSCA_TO_HOT_TYPE['tosca.policies.Scaling']
-            if policy.is_derived_from('tosca.policies.Monitoring'):
-                TOSCA_TO_HOT_TYPE[policy_type.type] = \
-                    TOSCA_TO_HOT_TYPE['tosca.policies.Monitoring']
-            if policy.is_derived_from('tosca.policies.Placement'):
-                TOSCA_TO_HOT_TYPE[policy_type.type] = \
-                    TOSCA_TO_HOT_TYPE['tosca.policies.Placement']
-            if not policy.is_derived_from('tosca.policies.Monitoring') and \
-                    not policy.is_derived_from('tosca.policies.Scaling') and \
-                    policy_type.type not in TOSCA_TO_HOT_TYPE:
-                raise UnsupportedTypeError(type=_('%s') % policy_type.type)
-            elif policy_type.type == 'tosca.policies.Scaling.Cluster':
-                self.hot_template_version = '2016-04-08'
-            policy_node = TOSCA_TO_HOT_TYPE[policy_type.type](policy)
-            self.hot_resources.append(policy_node)
+        # todo: refactor policies
+        # for policy in self.policies:
+        #     policy_type = policy.type_definition
+        #     if policy.is_derived_from('tosca.policies.Scaling') and \
+        #        policy_type.type != 'tosca.policies.Scaling.Cluster':
+        #         TOSCA_TO_HOT_TYPE[policy_type.type] = \
+        #             TOSCA_TO_HOT_TYPE['tosca.policies.Scaling']
+        #     if policy.is_derived_from('tosca.policies.Monitoring'):
+        #         TOSCA_TO_HOT_TYPE[policy_type.type] = \
+        #             TOSCA_TO_HOT_TYPE['tosca.policies.Monitoring']
+        #     if policy.is_derived_from('tosca.policies.Placement'):
+        #         TOSCA_TO_HOT_TYPE[policy_type.type] = \
+        #             TOSCA_TO_HOT_TYPE['tosca.policies.Placement']
+        #     if not policy.is_derived_from('tosca.policies.Monitoring') and \
+        #             not policy.is_derived_from('tosca.policies.Scaling') and \
+        #             policy_type.type not in TOSCA_TO_HOT_TYPE:
+        #         raise UnsupportedTypeError(type=_('%s') % policy_type.type)
+        #     elif policy_type.type == 'tosca.policies.Scaling.Cluster':
+        #         self.hot_template_version = '2016-04-08'
+        #     policy_node = TOSCA_TO_HOT_TYPE[policy_type.type](policy)
+        #     self.hot_resources.append(policy_node)
 
         # Handle life cycle operations: this may expand each node
         # into multiple HOT resources and may change their name

@@ -52,31 +52,32 @@ class HotResource(object):
         self.csar_dir = csar_dir
         # special case for HOT softwareconfig
         cwd = os.getcwd()
-        if type == 'OS::Heat::SoftwareConfig':
-            config = self.properties.get('config')
-            if isinstance(config, dict):
-                if self.csar_dir:
-                    os.chdir(self.csar_dir)
-                    implementation_artifact = os.path.abspath(config.get(
-                        'get_file'))
-                else:
-                    implementation_artifact = config.get('get_file')
-                if implementation_artifact:
-                    filename, file_extension = os.path.splitext(
-                        implementation_artifact)
-                    file_extension = file_extension.lower()
-                    # artifact_types should be read to find the exact script
-                    # type, unfortunately artifact_types doesn't seem to be
-                    # supported by the parser
-                    if file_extension == '.ansible' \
-                            or file_extension == '.yaml' \
-                            or file_extension == '.yml':
-                        self.properties['group'] = 'ansible'
-                    if file_extension == '.pp':
-                        self.properties['group'] = 'puppet'
-
-            if self.properties.get('group') is None:
-                self.properties['group'] = 'script'
+        # todo: implement configuration artifacts
+        # if type == 'OS::Heat::SoftwareConfig':
+        #     config = self.properties.get('config')
+        #     if isinstance(config, dict):
+        #         if self.csar_dir:
+        #             os.chdir(self.csar_dir)
+        #             implementation_artifact = os.path.abspath(config.get(
+        #                 'get_file'))
+        #         else:
+        #             implementation_artifact = config.get('get_file')
+        #         if implementation_artifact:
+        #             filename, file_extension = os.path.splitext(
+        #                 implementation_artifact)
+        #             file_extension = file_extension.lower()
+        #             # artifact_types should be read to find the exact script
+        #             # type, unfortunately artifact_types doesn't seem to be
+        #             # supported by the parser
+        #             if file_extension == '.ansible' \
+        #                     or file_extension == '.yaml' \
+        #                     or file_extension == '.yml':
+        #                 self.properties['group'] = 'ansible'
+        #             if file_extension == '.pp':
+        #                 self.properties['group'] = 'puppet'
+        #
+        #     if self.properties.get('group') is None:
+        #         self.properties['group'] = 'script'
         os.chdir(cwd)
         self.metadata = metadata
 
@@ -230,16 +231,16 @@ class HotResource(object):
         for hot in hot_resources:
             hot.group_dependencies.update(group)
 
-        roles_deploy_resource = self._handle_ansiblegalaxy_roles(
-            hot_resources, node_name, servers)
-
-        # add a dependency to this ansible roles deploy to
-        # the first "classic" deploy generated for this node
-        if roles_deploy_resource and op_index_min:
-            first_deploy = deploy_lookup.get(operations.get(
-                operations_deploy_sequence[op_index_min]))
-            first_deploy.depends_on.append(roles_deploy_resource)
-            first_deploy.depends_on_nodes.append(roles_deploy_resource)
+        # todo: check ansible configuration
+        # roles_deploy_resource = self._handle_ansiblegalaxy_roles(hot_resources, node_name, servers)
+        #
+        # # add a dependency to this ansible roles deploy to
+        # # the first "classic" deploy generated for this node
+        # if roles_deploy_resource and op_index_min:
+        #     first_deploy = deploy_lookup.get(operations.get(
+        #         operations_deploy_sequence[op_index_min]))
+        #     first_deploy.depends_on.append(roles_deploy_resource)
+        #     first_deploy.depends_on_nodes.append(roles_deploy_resource)
 
         return hot_resources, deploy_lookup, last_deploy
 
