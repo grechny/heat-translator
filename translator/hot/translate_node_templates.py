@@ -218,7 +218,10 @@ class TranslateNodeTemplates(object):
         # Copy the TOSCA graph: nodetemplate
         for node in self.nodetemplates:
             base_type = HotResource.get_base_type_str(node.type_definition)
-            if base_type not in TOSCA_TO_HOT_TYPE:
+            # fixme: need to reduce external cp as described in SOL003
+            if node.is_derived_from("tosca.nodes.nfv.VnfExtCpd"):
+                continue
+            elif base_type not in TOSCA_TO_HOT_TYPE:
                 raise UnsupportedTypeError(type=_('%s') % base_type)
             hot_node = TOSCA_TO_HOT_TYPE[base_type](node,
                                                     csar_dir=self.csar_dir)
@@ -336,6 +339,8 @@ class TranslateNodeTemplates(object):
                     self.hot_lookup[node].properties['server'] = \
                         {'get_resource': self.hot_lookup[node_depend].name}
                 # for all others, add dependency as depends_on
+                elif node.is_derived_from("tosca.nodes.nfv.VnfExtCpd"):
+                    continue
                 else:
                     self.hot_lookup[node].depends_on.append(
                         self.hot_lookup[node_depend].top_of_chain())
