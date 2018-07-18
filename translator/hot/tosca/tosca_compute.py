@@ -89,14 +89,18 @@ class ToscaCompute(HotResource):
             # find best match of image
             if os_cap_props:
                 image = self._best_image(os_cap_props)
-        # todo: need to investigate how to looking for flavor by SOL specs
+        # todo: need to investigate how to looking for flavor by SOL001 specs
         if not flavor:
             node_type = self.nodetemplate.type
             node_type_def = self.nodetemplate.custom_def.get(node_type)
-            virtual_compute_type = node_type_def.get('capabilities')\
-                .get('virtual_compute').get('type')
-            virtual_compute_def = self.nodetemplate.custom_def.get(virtual_compute_type)
-            flavor = virtual_compute_def.get('properties').get('flavour_id').get('default')
+            virtual_compute = node_type_def.get('capabilities').get('virtual_compute')
+            if virtual_compute:
+                virtual_compute_type = virtual_compute.get('type')
+                virtual_compute_def = self.nodetemplate.custom_def.get(virtual_compute_type)
+                flavor = virtual_compute_def.get('properties').get('flavour_id').get('default')
+                # trying to get image
+                artifact = self.nodetemplate.entity_tpl['interfaces']['Standard']['create']
+                image = self.nodetemplate.entity_tpl['artifacts'][artifact]['properties']['name']
         hot_properties['flavor'] = flavor
         if image:
             hot_properties['image'] = image
