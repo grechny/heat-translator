@@ -157,44 +157,44 @@ class HotResource(object):
             servers = {'get_resource': self.name}
 
         cwd = os.getcwd()
-        for operation in operations.values():
-            if operation.name in operations_deploy_sequence:
-                config_name = node_name + '_' + operation.name + '_config'
-                deploy_name = node_name + '_' + operation.name + '_deploy'
-                if self.csar_dir:
-                    os.chdir(self.csar_dir)
-                    get_file = os.path.abspath(operation.implementation)
-                else:
-                    get_file = operation.implementation
-                hot_resources.append(
-                    HotResource(self.nodetemplate,
-                                config_name,
-                                'OS::Heat::SoftwareConfig',
-                                {'config':
-                                    {'get_file': get_file}},
-                                csar_dir=self.csar_dir))
-                if operation.name == reserve_current and \
-                    base_type != 'tosca.nodes.Compute':
-                    deploy_resource = self
-                    self.name = deploy_name
-                    self.type = sw_deploy_res
-                    self.properties = {'config': {'get_resource': config_name},
-                                       server_key: servers}
-                    deploy_lookup[operation] = self
-                else:
-                    sd_config = {'config': {'get_resource': config_name},
-                                 server_key: servers}
-                    deploy_resource = \
-                        HotResource(self.nodetemplate,
-                                    deploy_name,
-                                    sw_deploy_res,
-                                    sd_config, csar_dir=self.csar_dir)
-                    hot_resources.append(deploy_resource)
-                    deploy_lookup[operation] = deploy_resource
-                lifecycle_inputs = self._get_lifecycle_inputs(operation)
-                if lifecycle_inputs:
-                    deploy_resource.properties['input_values'] = \
-                        lifecycle_inputs
+        # for operation in operations.values():
+        #     if operation.name in operations_deploy_sequence:
+        #         config_name = node_name + '_' + operation.name + '_config'
+        #         deploy_name = node_name + '_' + operation.name + '_deploy'
+        #         if self.csar_dir:
+        #             os.chdir(self.csar_dir)
+        #             get_file = os.path.abspath(operation.implementation)
+        #         else:
+        #             get_file = operation.implementation
+        #         hot_resources.append(
+        #             HotResource(self.nodetemplate,
+        #                         config_name,
+        #                         'OS::Heat::SoftwareConfig',
+        #                         {'config':
+        #                             {'get_file': get_file}},
+        #                         csar_dir=self.csar_dir))
+        #         if operation.name == reserve_current and \
+        #             base_type != 'tosca.nodes.Compute':
+        #             deploy_resource = self
+        #             self.name = deploy_name
+        #             self.type = sw_deploy_res
+        #             self.properties = {'config': {'get_resource': config_name},
+        #                                server_key: servers}
+        #             deploy_lookup[operation] = self
+        #         else:
+        #             sd_config = {'config': {'get_resource': config_name},
+        #                          server_key: servers}
+        #             deploy_resource = \
+        #                 HotResource(self.nodetemplate,
+        #                             deploy_name,
+        #                             sw_deploy_res,
+        #                             sd_config, csar_dir=self.csar_dir)
+        #             hot_resources.append(deploy_resource)
+        #             deploy_lookup[operation] = deploy_resource
+        #         lifecycle_inputs = self._get_lifecycle_inputs(operation)
+        #         if lifecycle_inputs:
+        #             deploy_resource.properties['input_values'] = \
+        #                 lifecycle_inputs
         os.chdir(cwd)
 
         # Add dependencies for the set of HOT resources in the sequence defined
