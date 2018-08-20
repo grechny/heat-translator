@@ -53,31 +53,32 @@ class HotResource(object):
         # special case for HOT softwareconfig
         cwd = os.getcwd()
         # todo: implement configuration artifacts
-        # if type == 'OS::Heat::SoftwareConfig':
-        #     config = self.properties.get('config')
-        #     if isinstance(config, dict):
-        #         if self.csar_dir:
-        #             os.chdir(self.csar_dir)
-        #             implementation_artifact = os.path.abspath(config.get(
-        #                 'get_file'))
-        #         else:
-        #             implementation_artifact = config.get('get_file')
-        #         if implementation_artifact:
-        #             filename, file_extension = os.path.splitext(
-        #                 implementation_artifact)
-        #             file_extension = file_extension.lower()
-        #             # artifact_types should be read to find the exact script
-        #             # type, unfortunately artifact_types doesn't seem to be
-        #             # supported by the parser
-        #             if file_extension == '.ansible' \
-        #                     or file_extension == '.yaml' \
-        #                     or file_extension == '.yml':
-        #                 self.properties['group'] = 'ansible'
-        #             if file_extension == '.pp':
-        #                 self.properties['group'] = 'puppet'
-        #
-        #     if self.properties.get('group') is None:
-        #         self.properties['group'] = 'script'
+        if type == 'OS::Heat::SoftwareConfig':
+            config = self.properties.get('config')
+            if isinstance(config, dict):
+                if self.csar_dir:
+                    os.chdir(self.csar_dir)
+                    implementation_artifact = os.path.abspath(config.get(
+                        'get_file'))
+                else:
+                    implementation_artifact = config.get('get_file')
+                if implementation_artifact:
+                    filename, file_extension = os.path.splitext(
+                        implementation_artifact)
+                    file_extension = file_extension.lower()
+                    # artifact_types should be read to find the exact script
+                    # type, unfortunately artifact_types doesn't seem to be
+                    # supported by the parser
+                    if file_extension == '.ansible' \
+                            or file_extension == '.yaml' \
+                            or file_extension == '.yml':
+                        self.properties['group'] = 'ansible'
+                    if file_extension == '.pp':
+                        self.properties['group'] = 'puppet'
+
+
+            if self.properties.get('group') is None:
+                self.properties['group'] = 'script'
         os.chdir(cwd)
         self.metadata = metadata
 
@@ -110,6 +111,19 @@ class HotResource(object):
         # for get_input, convert to get_param
         for prop in self.nodetemplate.get_properties_objects():
             pass
+
+    def get_artifact_file(self, name):
+        try:
+            artifact_type = self.nodetemplate.entity_tpl['artifacts'][name]['type']
+            if artifact_type.startswith('tosca.artifacts.Implementation'):
+                artifact_file = self.nodetemplate.entity_tpl['artifacts'][name]['file']
+                if self.csar_dir:
+                    os.chdir(self.csar_dir)
+                    return os.path.abspath(artifact_file)
+                else:
+                    return artifact_file
+        except:
+            return None
 
     def handle_life_cycle(self):
         hot_resources = []
@@ -157,44 +171,96 @@ class HotResource(object):
             servers = {'get_resource': self.name}
 
         cwd = os.getcwd()
-        # for operation in operations.values():
-        #     if operation.name in operations_deploy_sequence:
-        #         config_name = node_name + '_' + operation.name + '_config'
-        #         deploy_name = node_name + '_' + operation.name + '_deploy'
-        #         if self.csar_dir:
-        #             os.chdir(self.csar_dir)
-        #             get_file = os.path.abspath(operation.implementation)
-        #         else:
-        #             get_file = operation.implementation
-        #         hot_resources.append(
-        #             HotResource(self.nodetemplate,
-        #                         config_name,
-        #                         'OS::Heat::SoftwareConfig',
-        #                         {'config':
-        #                             {'get_file': get_file}},
-        #                         csar_dir=self.csar_dir))
-        #         if operation.name == reserve_current and \
-        #             base_type != 'tosca.nodes.Compute':
-        #             deploy_resource = self
-        #             self.name = deploy_name
-        #             self.type = sw_deploy_res
-        #             self.properties = {'config': {'get_resource': config_name},
-        #                                server_key: servers}
-        #             deploy_lookup[operation] = self
-        #         else:
-        #             sd_config = {'config': {'get_resource': config_name},
-        #                          server_key: servers}
-        #             deploy_resource = \
-        #                 HotResource(self.nodetemplate,
-        #                             deploy_name,
-        #                             sw_deploy_res,
-        #                             sd_config, csar_dir=self.csar_dir)
-        #             hot_resources.append(deploy_resource)
-        #             deploy_lookup[operation] = deploy_resource
-        #         lifecycle_inputs = self._get_lifecycle_inputs(operation)
-        #         if lifecycle_inputs:
-        #             deploy_resource.properties['input_values'] = \
-        #                 lifecycle_inputs
+        for operation in operations.values():
+            if operation.name in operations_deploy_sequence:
+                operation_config_created = False
+                config_name = node_name + '_' + operation.name + '_config'
+                deploy_name = node_name + '_' + operation.name + '_deploy'
+                # ---------------------------------------------
+                # operational implementation is string
+                # representing artifact name
+                if isinstance(operation.implementation, str):
+                    # if self.csar_dir:
+                    #     os.chdir(self.csar_dir)
+                    #     get_file = os.path.abspath(operation.implementation)
+                    # else:
+                    #     get_file = operation.implementation
+
+                # check that get_file is artifact and
+                # artifact type starts with tosca.artifacts.Implementation
+                 get_file = self.get_artifact_file(operation.implementation)
+
+                if isinstance(get_file, str):
+                    if os.path.isfile(get_file) or os.path.islink(get_file):
+                        hot_resources.append(
+                            HotResource(self.nodetemplate,
+                                        config_name,
+                                        'OS::Heat::SoftwareConfig',
+                                        {'config':
+                                            {'get_file': get_file}},
+                                        csar_dir=self.csar_dir))
+                        operation_config_created = True
+
+                # ---------------------------------------------
+                # operation implementation is dictionary with primary/dependencies
+                if isinstance(operation.implementation, dict):
+
+                    # create primary config
+                    primary = self.get_artifact_file(operation.implementation.get('primary'))
+                    if primary is not None:
+                        hot_resources.append(
+                            HotResource(self.nodetemplate,
+                                        config_name,
+                                        'OS::Heat::SoftwareConfig',
+                                        {'config':
+                                             {'get_file': primary}},
+                                        csar_dir=self.csar_dir))
+                        operation_config_created = True
+                    # create dependency configs
+                    dependencies = operation.implementation.get('dependencies')
+                    for dependency in dependencies:
+                        dep = self.get_artifact_file(dependency)
+                        if dep is not None:
+                            hot_resources.append(
+                                HotResource(self.nodetemplate,
+                                            dependency,
+                                            'OS::Heat::SoftwareConfig',
+                                            {'config':
+                                                 {'get_file': dep}},
+                                            csar_dir=self.csar_dir))
+                if operation_config_created:
+                    # process dependencies
+                    depends_on_list = []
+                    for dependency in dependencies:
+                        sd_config = {'config': {'get_resource': dependency}, server_key: servers}
+                        deploy_resource = \
+                            HotResource(self.nodetemplate,
+                                        dependency+'_deploy',
+                                        sw_deploy_res,
+                                        sd_config, csar_dir=self.csar_dir)
+                        hot_resources.append(deploy_resource)
+                        depends_on_list.append(deploy_resource)
+
+                    if operation.name == reserve_current and \
+                            base_type != 'tosca.nodes.Compute':
+                        deploy_resource = self
+                        self.name = deploy_name
+                        self.type = sw_deploy_res
+                        self.properties = {'config': {'get_resource': config_name}, server_key: servers}
+                        deploy_lookup[operation] = self
+                    else:
+                        sd_config = {'config': {'get_resource': config_name}, server_key: servers}
+                    deploy_resource = \
+                        HotResource(self.nodetemplate,
+                                    deploy_name,
+                                    sw_deploy_res,
+                                    sd_config, depends_on=depends_on_list, csar_dir=self.csar_dir)
+                    hot_resources.append(deploy_resource)
+                    deploy_lookup[operation] = deploy_resource
+                    lifecycle_inputs = self._get_lifecycle_inputs(operation)
+                    if lifecycle_inputs:
+                        deploy_resource.properties['input_values'] = \
+                            lifecycle_inputs
         os.chdir(cwd)
 
         # Add dependencies for the set of HOT resources in the sequence defined
@@ -232,15 +298,15 @@ class HotResource(object):
             hot.group_dependencies.update(group)
 
         # todo: check ansible configuration
-        # roles_deploy_resource = self._handle_ansiblegalaxy_roles(hot_resources, node_name, servers)
-        #
-        # # add a dependency to this ansible roles deploy to
-        # # the first "classic" deploy generated for this node
-        # if roles_deploy_resource and op_index_min:
-        #     first_deploy = deploy_lookup.get(operations.get(
-        #         operations_deploy_sequence[op_index_min]))
-        #     first_deploy.depends_on.append(roles_deploy_resource)
-        #     first_deploy.depends_on_nodes.append(roles_deploy_resource)
+        roles_deploy_resource = self._handle_ansiblegalaxy_roles(hot_resources, node_name, servers)
+
+        # add a dependency to this ansible roles deploy to
+        # the first "classic" deploy generated for this node
+        if roles_deploy_resource and op_index_min:
+            first_deploy = deploy_lookup.get(operations.get(
+                operations_deploy_sequence[op_index_min]))
+            first_deploy.depends_on.append(roles_deploy_resource)
+            first_deploy.depends_on_nodes.append(roles_deploy_resource)
 
         return hot_resources, deploy_lookup, last_deploy
 
@@ -478,7 +544,17 @@ class HotResource(object):
             artifacts = {}
         tpl_artifacts = nodetemplate.entity_tpl.get('artifacts')
         if tpl_artifacts:
-            artifacts.update(tpl_artifacts)
+            # artifacts.update(tpl_artifacts)
+            if isinstance(artifacts, dict):
+                for k, v in artifacts.items():
+                    if k not in tpl_artifacts.keys():
+                        tpl_artifacts[k] = v
+            if isinstance(artifacts, list):
+                for artifact in artifacts:
+                    for k,v in artifact.items():
+                        if k not in tpl_artifacts.keys():
+                            tpl_artifacts[k] = v
+            return tpl_artifacts
 
         return artifacts
 
