@@ -273,11 +273,19 @@ class TranslatorShell(object):
             log.debug(_('Loading the tosca template.'))
             tosca = ToscaTemplate(path, parsed_params, a_file)
             csar_dir = None
-            if deploy and zipfile.is_zipfile(path):
+            # if deploy and zipfile.is_zipfile(path):
+            if zipfile.is_zipfile(path):
                 # set CSAR directory to the root of TOSCA-Metadata
                 csar_decompress = utils.decompress(path)
-                csar_dir = os.path.join(csar_decompress,
-                                        self.TOSCA_CSAR_META_DIR)
+                csar_dir = csar_decompress
+                # csar_dir = os.path.join(csar_decompress,
+                #                         self.TOSCA_CSAR_META_DIR)
+                msg = _("'%(csar)s' is the location of decompressed "
+                        "CSAR file.") % {'csar': csar_dir}
+                log.info(msg)
+            if os.path.isdir(path):
+                # set CSAR directory to the root of TOSCA-Metadata
+                csar_dir = path
                 msg = _("'%(csar)s' is the location of decompressed "
                         "CSAR file.") % {'csar': csar_dir}
                 log.info(msg)
