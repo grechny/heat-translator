@@ -69,7 +69,8 @@ class ToscaNfvCpd(HotResource):
                         self.depends_on.remove(hot_resource)
                         break
 
-                if network_resource.existing_resource_id:
+                if (network_resource is not None) and \
+                        network_resource.existing_resource_id:
                     port_props['network'] =\
                         str(network_resource.existing_resource_id)
                 else:
