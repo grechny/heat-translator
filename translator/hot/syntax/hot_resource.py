@@ -223,7 +223,7 @@ class HotResource(object):
                         if dep is not None:
                             hot_resources.append(
                                 HotResource(self.nodetemplate,
-                                            dependency,
+                                            node_name + dependency,
                                             'OS::Heat::SoftwareConfig',
                                             {'config':
                                                  {'get_file': dep}},
@@ -232,10 +232,10 @@ class HotResource(object):
                     # process dependencies
                     depends_on_list = []
                     for dependency in dependencies:
-                        sd_config = {'config': {'get_resource': dependency}, server_key: servers}
+                        sd_config = {'config': {'get_resource': node_name + dependency}, server_key: servers}
                         deploy_resource = \
                             HotResource(self.nodetemplate,
-                                        dependency+'_deploy',
+                                        node_name + dependency + '_deploy',
                                         sw_deploy_res,
                                         sd_config, csar_dir=self.csar_dir)
                         hot_resources.append(deploy_resource)
