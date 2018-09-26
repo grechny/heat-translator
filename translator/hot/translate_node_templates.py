@@ -341,8 +341,8 @@ class TranslateNodeTemplates(object):
                 # for all others, add dependency as depends_on
                 elif node.is_derived_from("tosca.nodes.nfv.VnfExtCpd"):
                     continue
-                elif node.is_derived_from("tosca.nodes.nfv.Cpd"):
-                    continue
+                # elif node.is_derived_from("tosca.nodes.nfv.Cpd"):
+                #     continue
                 else:
                     self.hot_lookup[node].depends_on.append(
                         self.hot_lookup[node_depend].top_of_chain())
