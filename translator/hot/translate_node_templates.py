@@ -352,8 +352,8 @@ class TranslateNodeTemplates(object):
 
                 last_deploy = self.last_deploy_map.get(
                     self.hot_lookup[node_depend])
-                if last_deploy and  (base_type == 'tosca.nodes.Compute') and \
-                        (last_deploy not in self.hot_lookup[node].depends_on): 
+                if last_deploy and (node.is_derived_from('tosca.nodes.Compute')) \
+                        and (last_deploy not in self.hot_lookup[node].depends_on):
                     self.hot_lookup[node].depends_on.append(last_deploy)
                     self.hot_lookup[node].depends_on_nodes.append(last_deploy)
 
